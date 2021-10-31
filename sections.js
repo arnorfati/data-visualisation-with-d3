@@ -3,26 +3,26 @@ let salarySizeScale, salaryXScale, categoryColorScale
 let simulation, nodes
 let categoryLegend, salaryLegend
 
-const categories = ['Engineering', 'Business', 'Physical Sciences', 'Law & Public Policy', 'Computers & Mathematics', 'Agriculture & Natural Resources',
-'Industrial Arts & Consumer Services','Arts', 'Health','Social Science', 'Biology & Life Science','Education','Humanities & Liberal Arts',
-'Psychology & Social Work','Communications & Journalism','Interdisciplinary']
+const categories = ['외식', '간편결제', '생필품', '교통', '배달', '주거_생활',
+'구독서비스','뷰티_미용', '카페_디저트','문화', '자동차','쇼핑','운동',
+'학습/자기개발','병원_건강','미분류']
 
-const categoriesXY = {'Engineering': [0, 400, 57382, 23.9],
-                        'Business': [0, 600, 43538, 48.3],
-                        'Physical Sciences': [0, 800, 41890, 50.9],
-                        'Law & Public Policy': [0, 200, 42200, 48.3],
-                        'Computers & Mathematics': [200, 400, 42745, 31.2],
-                        'Agriculture & Natural Resources': [200, 600, 36900, 40.5],
-                        'Industrial Arts & Consumer Services': [200, 800, 36342, 35.0],
-                        'Arts': [200, 200, 33062, 60.4],
-                        'Health': [400, 400, 36825, 79.5],
-                        'Social Science': [400, 600, 37344, 55.4],
-                        'Biology & Life Science': [400, 800, 36421, 58.7],
-                        'Education': [400, 200, 32350, 74.9],
-                        'Humanities & Liberal Arts': [600, 400, 31913, 63.2],
-                        'Psychology & Social Work': [600, 600, 30100, 79.4],
-                        'Communications & Journalism': [600, 800, 34500, 65.9],
-                        'Interdisciplinary': [600, 200, 35000, 77.1]}
+const categoriesXY = {'외식': [0, 400, 4040000, 86.1],
+                        '간편결제': [0, 600, 1400000, 119.9],
+                        '생필품': [0, 800, 980000, 99.4],
+                        '교통': [0, 200, 700000, 106.4],
+                        '배달': [200, 400, 980000, 153.3],
+                        '주거_생활': [200, 600, 2010000, 105.2],
+                        '구독서비스': [200, 800, 400000, 105.5],
+                        '뷰티_미용': [200, 200, 400000, 102.5],
+                        '카페_디저트': [400, 400, 1680000, 123.3],
+                        '문화': [400, 600, 280000, 79.5],
+                        '자동차': [400, 800, 700000, 100.2],
+                        '쇼핑': [400, 200, 2178000, 115.2],
+                        '운동': [600, 400, 1400000, 93.2],
+                        '학습/자기개발': [600, 600, 280000, 99.6],
+                        '병원_건강': [600, 800, 140000, 99.6],
+                        '미분류': [600, 200, 1500000, 160.0]}
 
 const margin = {left: 170, top: 50, bottom: 50, right: 20}
 const width = 1000 - margin.left - margin.right
@@ -59,7 +59,7 @@ const colors = ['#ffcc00', '#ff6666', '#cc0066', '#66cccc', '#f688bb', '#65587f'
 function createScales(){
     salarySizeScale = d3.scaleLinear(d3.extent(dataset, d => d.Median), [5, 35])
     salaryXScale = d3.scaleLinear(d3.extent(dataset, d => d.Median), [margin.left, margin.left + width+250])
-    salaryYScale = d3.scaleLinear([20000, 110000], [margin.top + height, margin.top])
+    salaryYScale = d3.scaleLinear([0, 1600000], [margin.top + height, margin.top])
     categoryColorScale = d3.scaleOrdinal(categories, colors)
     shareWomenXScale = d3.scaleLinear(d3.extent(dataset, d => d.ShareWomen), [margin.left, margin.left + width])
     enrollmentScale = d3.scaleLinear(d3.extent(dataset, d => d.Total), [margin.left + 120, margin.left + width - 50])
@@ -94,8 +94,8 @@ function createSizeLegend(){
         .scale(salarySizeScale)
         .shape('circle')
         .shapePadding(15)
-        .title('Salary Scale')
-        .labelFormat(d3.format("$,.2r"))
+        .title('지출 금액 크기(₩)')
+        .labelFormat(d3.format(",.2r"))
         .cells(7)
 
     d3.select('.sizeLegend')
@@ -113,8 +113,8 @@ function createSizeLegend2(){
         .shape('circle')
         .shapePadding(55)
         .orient('horizontal')
-        .title('Enrolment Scale')
-        .labels(['1000', '200000', '400000'])
+        .title('지출 횟수 크기(건)')
+        .labels(['5', '50', '300'])
         .labelOffset(30)
         .cells(3)
 
@@ -139,7 +139,7 @@ function drawInitial(){
 
     let xAxis = d3.axisBottom(salaryXScale)
                     .ticks(4)
-                    .tickSize(height + 80)
+                    .tickSize(700 + 80)
 
     let xAxisGroup = svg.append('g')
         .attr('class', 'first-axis')
@@ -197,11 +197,11 @@ function drawInitial(){
             .style('left', (d3.event.pageX + 10)+ 'px')
             .style('top', (d3.event.pageY - 25) + 'px')
             .style('display', 'inline-block')
-            .html(`<strong>Major:</strong> ${d.Major[0] + d.Major.slice(1,).toLowerCase()} 
-                <br> <strong>Median Salary:</strong> $${d3.format(",.2r")(d.Median)} 
-                <br> <strong>Category:</strong> ${d.Category}
-                <br> <strong>% Female:</strong> ${Math.round(d.ShareWomen*100)}%
-                <br> <strong># Enrolled:</strong> ${d3.format(",.2r")(d.Total)}`)
+            .html(`<strong>지출 유형:</strong> ${d.Category}
+                <br><strong>지출 항목:</strong> ${d.Major[0] + d.Major.slice(1,).toLowerCase()} 
+                <br> <strong>지출 금액:</strong> ₩${d3.format(",.2r")(d.Median)} 
+                <br> <strong>증감 비율:</strong> ${Math.round(d.ShareWomen*100)}%
+                <br> <strong>지출 건수:</strong> ${d3.format(",.2r")(d.Total)}`)
     }
     
     function mouseOut(d, i){
@@ -248,7 +248,7 @@ function drawInitial(){
         .raise()
 
     svg.selectAll('.lab-text')
-        .text(d => `Average: $${d3.format(",.2r")(categoriesXY[d][2])}`)
+        .text(d => `총 지출금액: ₩${d3.format(",.2r")(categoriesXY[d][2])}`)
         .attr('x', d => categoriesXY[d][0] + 200 + 1000)
         .attr('y', d => categoriesXY[d][1] - 500)
         .attr('font-family', 'Domine')
@@ -264,13 +264,13 @@ function drawInitial(){
             })
             .on('mouseout', function(d, i){
                 d3.select(this)
-                    .text(d => `Average: $${d3.format(",.2r")(categoriesXY[d][2])}`)
+                    .text(d => `총 지출금액: ₩${d3.format(",.2r")(categoriesXY[d][2])}`)
             })
 
 
     // Best fit line for gender scatter plot
 
-    const bestFitLine = [{x: 0, y: 56093}, {x: 1, y: 25423}]
+    const bestFitLine = [{x: 0.4, y: 56093}, {x: 1.5, y: 455423}]
     const lineFunction = d3.line()
                             .x(d => shareWomenXScale(d.x))
                             .y(d => salaryYScale(d.y))
@@ -416,7 +416,7 @@ function draw3(){
         .attr('x', d => categoriesXY[d][0] + 120)
         
     svg.selectAll('.lab-text').transition().duration(300).delay((d, i) => i * 30)
-        .text(d => `Average: $${d3.format(",.2r")(categoriesXY[d][2])}`)
+        .text(d => `총 지출금액: ₩${d3.format(",.2r")(categoriesXY[d][2])}`)
         .attr('x', d => categoriesXY[d][0] + 200)   
         .attr('y', d => categoriesXY[d][1] + 50)
         .attr('opacity', 1)
@@ -428,7 +428,7 @@ function draw3(){
         })
         .on('mouseout', function(d, i){
             d3.select(this)
-                .text(d => `Average: $${d3.format(",.2r")(categoriesXY[d][2])}`)
+                .text(d => `총 지출금액: ₩${d3.format(",.2r")(categoriesXY[d][2])}`)
         })
 
     simulation  
@@ -453,7 +453,7 @@ function draw5(){
     simulation.alpha(1).restart()
    
     svg.selectAll('.lab-text').transition().duration(300).delay((d, i) => i * 30)
-        .text(d => `% Female: ${(categoriesXY[d][3])}%`)
+        .text(d => `증감 비율: ${(categoriesXY[d][3])}%`)
         .attr('x', d => categoriesXY[d][0] + 200)   
         .attr('y', d => categoriesXY[d][1] + 50)
         .attr('opacity', 1)
@@ -465,7 +465,7 @@ function draw5(){
         })
         .on('mouseout', function(d, i){
             d3.select(this)
-                .text(d => `% Female: ${(categoriesXY[d][3])}%`)
+                .text(d => `증감 비율: ${(categoriesXY[d][3])}%`)
         })
    
     svg.selectAll('.cat-rect').transition().duration(300).delay((d, i) => i * 30)
@@ -480,9 +480,9 @@ function draw5(){
 }
 
 function colorByGender(d, i){
-    if (d.ShareWomen < 0.4){
+    if (d.ShareWomen < 0.85){
         return 'blue'
-    } else if (d.ShareWomen > 0.6) {
+    } else if (d.ShareWomen > 1.15) {
         return 'red'
     } else {
         return 'grey'
