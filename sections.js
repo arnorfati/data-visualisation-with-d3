@@ -545,7 +545,7 @@ function draw4(){
             .attr('r', 10)
             .attr('cx', d => histXScale(d.Midpoint))
             .attr('cy', d => histYScale(d.HistCol))
-            .attr('fill', d => categoryColorScale(d.Category))
+            .attr('fill', 'LightGray'  )
 
     let xAxis = d3.axisBottom(histXScale)
     svg.append('g')
