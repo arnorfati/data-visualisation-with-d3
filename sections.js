@@ -64,8 +64,11 @@ function createScales(){
     shareWomenXScale = d3.scaleLinear(d3.extent(dataset, d => d.ShareWomen), [margin.left, margin.left + width])
     enrollmentScale = d3.scaleLinear(d3.extent(dataset, d => d.Total), [margin.left + 120, margin.left + width - 50])
     enrollmentSizeScale = d3.scaleLinear(d3.extent(dataset, d=> d.Total), [10,60])
-    histXScale = d3.scaleLinear(d3.extent(dataset, d => d.Midpoint), [margin.left, margin.left + width])
-    histYScale = d3.scaleLinear(d3.extent(dataset, d => d.HistCol), [margin.top + height, margin.top])
+    histXScale = d3.scaleLinear(d3.extent(dataset, d => d.Midpoint), 
+        [margin.left, margin.left + width - 50]) // 오른쪽 여백 추가
+    histYScale = d3.scaleLinear(
+        [0, d3.max(dataset, d => d.HistCol)], // 0부터 시작하도록 수정
+        [height + margin.top, margin.top]) // 위아래 여백 확보
 }
 
 function createLegend(x, y){
@@ -82,21 +85,30 @@ function createLegend(x, y){
     
     d3.select('.categoryLegend')
         .call(categoryLegend)
+
+    // 범례 항목을 2열로 배치하고 간격 조정
+    d3.selectAll('.categoryLegend .cell')
+        .attr('transform', function(d, i) {
+            const col = i % 2; // 열 계산
+            const row = Math.floor(i / 2); // 행 계산
+            return `translate(${col * 120}, ${row * 20})`; // x, y 위치 조정
+        });
 }
 
 function createSizeLegend(){
     let svg = d3.select('#legend2')
     svg.append('g')
         .attr('class', 'sizeLegend')
-        .attr('transform', `translate(100,50)`)
+        .attr('transform', `translate(0,50)`)
 
     sizeLegend2 = d3.legendSize()
         .scale(salarySizeScale)
         .shape('circle')
-        .shapePadding(15)
+        .shapePadding(50)
+        .orient('horizontal')
         .title('지출 금액 크기(₩)')
         .labelFormat(d3.format(",.2r"))
-        .cells(7)
+        .cells(5)
 
     d3.select('.sizeLegend')
         .call(sizeLegend2)
@@ -264,7 +276,7 @@ function drawInitial(){
             })
             .on('mouseout', function(d, i){
                 d3.select(this)
-                    .text(d => `총 지출금액: ₩${d3.format(",.2r")(categoriesXY[d][2])}`)
+                    .text(d => `${d}: 총 지출금액: ₩${d3.format(",.2r")(categoriesXY[d][2])}`)
             })
 
 
@@ -481,9 +493,9 @@ function draw5(){
 
 function colorByGender(d, i){
     if (d.ShareWomen < 0.85){
-        return 'blue'
+        return '#03A696'
     } else if (d.ShareWomen > 1.15) {
-        return 'red'
+        return '#F24171'
     } else {
         return 'grey'
     }
@@ -542,15 +554,15 @@ function draw4(){
 
     svg.selectAll('circle')
         .transition().duration(600).delay((d, i) => i * 2).ease(d3.easeBack)
-            .attr('r', 10)
+            .attr('r', 5) // 원 크기를 좀 더 작게 조정
             .attr('cx', d => histXScale(d.Midpoint))
             .attr('cy', d => histYScale(d.HistCol))
-            .attr('fill', 'LightGray'  )
+            .attr('fill', 'LightGray')
 
     let xAxis = d3.axisBottom(histXScale)
     svg.append('g')
         .attr('class', 'hist-axis')
-        .attr('transform', `translate(0, ${height + margin.top + 10})`)
+        .attr('transform', `translate(0, ${height + margin.top })`)
         .call(xAxis)
 
     svg.selectAll('.lab-text')
@@ -598,23 +610,27 @@ scroll()
 
 let lastIndex, activeIndex = 0
 
-scroll.on('active', function(index){
+scroll.on('active', function(index) {
+    // 모든 step에 대해 상태 업데이트
     d3.selectAll('.step')
-        .transition().duration(500)
-        .style('opacity', function (d, i) {return i === index ? 1 : 0.1;});
-    
-    activeIndex = index
+        .classed('is-active', function(d, i) { return i === index; })
+        .classed('is-leaving', function(d, i) { return i === index - 1; })
+        .classed('is-next', function(d, i) { return i === index + 1; });
+
+    // 기존의 활성화 함수 실행
+    activeIndex = index;
     let sign = (activeIndex - lastIndex) < 0 ? -1 : 1; 
     let scrolledSections = d3.range(lastIndex + sign, activeIndex + sign, sign);
     scrolledSections.forEach(i => {
         activationFunctions[i]();
     })
     lastIndex = activeIndex;
-
-})
+});
 
 scroll.on('progress', function(index, progress){
     if (index == 2 & progress > 0.7){
 
     }
 })
+
+
