@@ -148,6 +148,9 @@ function drawInitial(){
                     .attr('width', 1000)
                     .attr('height', 950)
                     .attr('opacity', 1)
+// 생성형AI활용 화면 내 차트 크기 맞추기                    
+                    .attr('viewBox', `0 0 1000 950`)
+                    .attr('preserveAspectRatio', 'xMidYMid meet')
 
     let xAxis = d3.axisBottom(salaryXScale)
                     .ticks(4)
@@ -392,7 +395,10 @@ function draw1(){
 
 
 function draw2(){
-    let svg = d3.select("#vis").select('svg')
+    let svg = d3.select("#vis")
+                    .select('svg')
+                    .attr('width', 1000)
+                    .attr('height', 950)
     
     clean('none')
 
@@ -617,7 +623,7 @@ scroll.on('active', function(index) {
         .classed('is-leaving', function(d, i) { return i === index - 1; })
         .classed('is-next', function(d, i) { return i === index + 1; });
 
-    // 기존의 활성화 함수 실행
+    // 기��의 활성화 함수 실행
     activeIndex = index;
     let sign = (activeIndex - lastIndex) < 0 ? -1 : 1; 
     let scrolledSections = d3.range(lastIndex + sign, activeIndex + sign, sign);
