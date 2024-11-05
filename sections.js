@@ -597,6 +597,7 @@ function draw8(){
 
 let activationFunctions = [
     draw1,
+    draw1,
     draw2,
     draw3,
     draw4,
