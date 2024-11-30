@@ -1,28 +1,26 @@
-let dataset, svg
-let salarySizeScale, salaryXScale, categoryColorScale
+
+let salarySizeScale, salaryXScale, categoryColorScale, assetSizeScale, x1Scale, x2Scale
 let simulation, nodes
 let categoryLegend, salaryLegend
 
-const categories = ['외식', '간편결제', '생필품', '교통', '배달', '주거/생활',
-'구독서비스','뷰티/미용', '카페/디저트','문화', '자동차','쇼핑','운동',
-'학습/자기개발','병원/건강','미분류']
-
-const categoriesXY = {'외식': [0, 400, 4040000, 86.1],
-                        '간편결제': [0, 600, 1400000, 119.9],
-                        '생필품': [0, 800, 980000, 99.4],
-                        '교통': [0, 200, 700000, 106.4],
-                        '배달': [200, 400, 980000, 153.3],
-                        '주거/생활': [200, 600, 2010000, 105.2],
-                        '구독서비스': [200, 800, 400000, 105.5],
-                        '뷰티/미용': [200, 200, 400000, 102.5],
-                        '카페/디저트': [400, 400, 1680000, 123.3],
-                        '문화': [400, 600, 280000, 79.5],
-                        '자동차': [400, 800, 700000, 100.2],
-                        '쇼핑': [400, 200, 2178000, 115.2],
-                        '운동': [600, 400, 1400000, 93.2],
-                        '학습/자기개발': [600, 600, 280000, 99.6],
-                        '병원/건강': [600, 800, 140000, 99.6],
-                        '미분류': [600, 200, 1500000, 160.0]}
+const categories = ['주식', 'ISA','입출금','펀드', '대출',
+    '예금', 'IRP','보험/방카',
+     '적금','퇴직연금',
+    '외환',
+    '청약']
+const colors = ['#ffcc00', '#ff6666', '#cc0066', '#0c7b93', '#f688bb', '#65587f', '#baf1a1', '#333333', '#75b79e',  '#66cccc', '#9de3d0', '#9399ff']//, '#0c7b93', '#eab0d9', '#baf1a1', '#9399ff'
+const categoriesXY = {'주식':    [0, 500, 4040000, 86.1],
+                        'ISA':  [0, 800, 1400000, 119.9],
+                        '입출금': [0, 200, 700000, 106.4],
+                        '펀드':  [200, 500, 980000, 153.3],
+                        '대출':  [200, 800, 2010000, 105.2],
+                        '예금':  [200, 200, 400000, 102.5],
+                        'IRP':  [400, 500, 1680000, 123.3],
+                        '보험/방카': [400, 800, 280000, 79.5],
+                        '적금': [400, 200, 2178000, 115.2],
+                        '퇴직연금': [600, 500, 1400000, 93.2],
+                        '외환': [600, 800, 280000, 99.6],
+                        '청약': [600, 200, 1500000, 160.0]}
 
 const margin = {left: 170, top: 50, bottom: 50, right: 20}
 const width = 1000 - margin.left - margin.right
@@ -36,9 +34,14 @@ d3.csv('data/recent-grads.csv', function(d){
     return {
         Major: d.Major,
         Total: +d.Total,
+        x1: +d.x1,
+        x2: +d.x2,
+        asset_size: +d.asset_size,
+        asset_size_part2 :+d.asset_size_part2,
         Men: +d.Men,
         Women: +d.Women,
         Median: +d.Median,
+        fin_type : d.fin_type,
         Unemployment: +d.Unemployment_rate,
         Category: d.Major_category,
         ShareWomen: +d.ShareWomen, 
@@ -52,19 +55,30 @@ d3.csv('data/recent-grads.csv', function(d){
     setTimeout(drawInitial(), 100)
 })
 
-const colors = ['#ffcc00', '#ff6666', '#cc0066', '#66cccc', '#f688bb', '#65587f', '#baf1a1', '#333333', '#75b79e',  '#66cccc', '#9de3d0', '#f1935c', '#0c7b93', '#eab0d9', '#baf1a1', '#9399ff']
+
 
 //Create all the scales and save to global variables
 
 function createScales(){
-    salarySizeScale = d3.scaleLinear(d3.extent(dataset, d => d.Median), [5, 35])
+    salarySizeScale = d3.scaleLinear(d3.extent(dataset, d => d.Median), [5, 50])
+
+    assetSizeScale = d3.scaleLinear(d3.extent(dataset, d => d.asset_size), [10, 50])
+    assetSizeScale2 = d3.scaleLinear(d3.extent(dataset, d => d.asset_size_part2), [15, 60])
+
+    // x1Scale = d3.scaleLinear([0,1], [margin.left, margin.left + width])
+    // x2Scale = d3.scaleLinear([0,1], [margin.top + height, margin.top])
+    x1Scale = d3.scaleLinear([0,1], [margin.left,width - margin.right + 190])
+    x2Scale = d3.scaleLinear([0,1], [height - margin.bottom + 90,  margin.top + 10])
+    
+    
+    
     salaryXScale = d3.scaleLinear(d3.extent(dataset, d => d.Median), [margin.left, margin.left + width+250])
     salaryYScale = d3.scaleLinear([0, 1600000], [margin.top + height, margin.top])
     categoryColorScale = d3.scaleOrdinal(categories, colors)
     shareWomenXScale = d3.scaleLinear(d3.extent(dataset, d => d.ShareWomen), [margin.left, margin.left + width])
-    enrollmentScale = d3.scaleLinear(d3.extent(dataset, d => d.Total), [margin.left + 120, margin.left + width - 50])
-    enrollmentSizeScale = d3.scaleLinear(d3.extent(dataset, d=> d.Total), [10,60])
-    histXScale = d3.scaleLinear(d3.extent(dataset, d => d.Midpoint), 
+    enrollmentScale = d3.scaleLinear([0,1], [margin.left + 120, margin.left + width - 50])
+    enrollmentSizeScale = d3.scaleLinear(d3.extent(dataset, d=> d.asset_size_part2), [10,60])
+    histXScale = d3.scaleLinear([0,1], 
         [margin.left, margin.left + width - 50]) // 오른쪽 여백 추가
     histYScale = d3.scaleLinear(
         [0, d3.max(dataset, d => d.HistCol)], // 0부터 시작하도록 수정
@@ -102,13 +116,13 @@ function createSizeLegend(){
         .attr('transform', `translate(0,50)`)
 
     sizeLegend2 = d3.legendSize()
-        .scale(salarySizeScale)
+        .scale(assetSizeScale)
         .shape('circle')
         .shapePadding(50)
-        .orient('horizontal')
-        .title('지출 금액 크기(₩)')
+        // .orient('horizontal')
+        .title('자산 총액(₩)')
         .labelFormat(d3.format(",.2r"))
-        .cells(5)
+        .cells(4)
 
     d3.select('.sizeLegend')
         .call(sizeLegend2)
@@ -152,19 +166,19 @@ function drawInitial(){
                     .attr('viewBox', `0 0 1000 950`)
                     .attr('preserveAspectRatio', 'xMidYMid meet')
 
-    let xAxis = d3.axisBottom(salaryXScale)
-                    .ticks(4)
-                    .tickSize(700 + 80)
+    // let xAxis = d3.axisBottom(salaryXScale)
+    //                 .ticks(4)
+    //                 .tickSize(700 + 80)
 
-    let xAxisGroup = svg.append('g')
-        .attr('class', 'first-axis')
-        .attr('transform', 'translate(0, 0)')
-        .call(xAxis)
-        .call(g => g.select('.domain')
-            .remove())
-        .call(g => g.selectAll('.tick line'))
-            .attr('stroke-opacity', 0.2)
-            .attr('stroke-dasharray', 2.5)
+    // let xAxisGroup = svg.append('g')
+    //     .attr('class', 'first-axis')
+    //     .attr('transform', 'translate(0, 0)')
+    //     .call(xAxis)
+    //     .call(g => g.select('.domain')
+    //         .remove())
+    //     .call(g => g.selectAll('.tick line'))
+    //         .attr('stroke-opacity', 0.2)
+    //         .attr('stroke-dasharray', 2.5)
 
     // Instantiates the force simulation
     // Has no forces. Actual forces are added and removed as required
@@ -176,6 +190,7 @@ function drawInitial(){
         nodes
             .attr('cx', d => d.x)
             .attr('cy', d => d.y)
+            
     })
 
     // Stop the simulation until later
@@ -187,11 +202,16 @@ function drawInitial(){
         .data(dataset)
         .enter()
         .append('circle')
-            .attr('fill', 'black')
-            .attr('r', 3)
-            .attr('cx', (d, i) => salaryXScale(d.Median) + 5)
-            .attr('cy', (d, i) => i * 5.2 + 30)
-            .attr('opacity', 0.8)
+        .attr('r', d => salarySizeScale(d.Median) * 1.6)
+        .attr('fill', d => categoryColorScale(d.Category))
+        
+    
+
+        simulation 
+            .force('forceX', d3.forceX(500))
+            .force('forceY', d3.forceY(500))
+            .force('collide', d3.forceCollide(d => salarySizeScale(d.Median) * 1.6 + 4))
+            .alpha(0.6).alphaDecay(0.05).restart()
         
     // Add mouseover and mouseout events for all circles
     // Changes opacity and adds border
@@ -212,11 +232,14 @@ function drawInitial(){
             .style('left', (d3.event.pageX + 10)+ 'px')
             .style('top', (d3.event.pageY - 25) + 'px')
             .style('display', 'inline-block')
-            .html(`<strong>지출 유형:</strong> ${d.Category}
-                <br><strong>지출 항목:</strong> ${d.Major[0] + d.Major.slice(1,).toLowerCase()} 
-                <br> <strong>지출 금액:</strong> ₩${d3.format(",.2r")(d.Median)} 
-                <br> <strong>증감 비율:</strong> ${Math.round(d.ShareWomen*100)}%
-                <br> <strong>지출 건수:</strong> ${d3.format(",.2r")(d.Total)}`)
+            .html(`<strong>자산 유형:</strong> ${d.Category}
+                <br><strong>상품명:</strong> ${d.Major[0] + d.Major.slice(1,).toLowerCase()} 
+                <br> <strong>자산 금액:</strong> ₩${d3.format(",.2r")(d.asset_size)} 
+                <br> <strong>수익율:</strong> ${Math.round(d.ShareWomen*100)}%
+                <br> <strong>금융기관:</strong> ${d.fin_type}`
+            )
+                
+                
     }
     
     function mouseOut(d, i){
@@ -232,7 +255,6 @@ function drawInitial(){
     //Small text label for first graph
     svg.selectAll('.small-text')
         .data(dataset)
-        .enter()
         .append('text')
             .text((d, i) => d.Major.toLowerCase())
             .attr('class', 'small-text')
@@ -263,7 +285,7 @@ function drawInitial(){
         .raise()
 
     svg.selectAll('.lab-text')
-        .text(d => `총 지출금액: ₩${d3.format(",.2r")(categoriesXY[d][2])}`)
+        // .text(d => d.Category)
         .attr('x', d => categoriesXY[d][0] + 200 + 1000)
         .attr('y', d => categoriesXY[d][1] - 500)
         .attr('font-family', 'Domine')
@@ -275,11 +297,12 @@ function drawInitial(){
     svg.selectAll('.lab-text')
             .on('mouseover', function(d, i){
                 d3.select(this)
-                    .text(d)
+                    .text(d => `${d}: 총 자산: ₩${d3.format(",.2r")(categoriesXY[d][2])}`)
+                    
             })
             .on('mouseout', function(d, i){
                 d3.select(this)
-                    .text(d => `${d}: 총 지출금액: ₩${d3.format(",.2r")(categoriesXY[d][2])}`)
+                    .text(d)
             })
 
 
@@ -301,26 +324,59 @@ function drawInitial(){
             .attr('stroke-width', 3)
 
     let scatterxAxis = d3.axisBottom(shareWomenXScale)
-    let scatteryAxis = d3.axisLeft(salaryYScale).tickSize([width])
+    let scatteryAxis = d3.axisLeft(salaryYScale)
 
     svg.append('g')
         .call(scatterxAxis)
         .attr('class', 'scatter-x')
         .attr('opacity', 0)
-        .attr('transform', `translate(0, ${height + margin.top})`)
+        .attr('transform', `translate(0, ${(height / 2)+50})`)
         .call(g => g.select('.domain')
+            .attr('stroke', 'gray')
+            .attr('stroke-dasharray', '4,4'))
+        .call(g => g.selectAll('.tick line')
+            .attr('stroke', 'gray')
+            .attr('stroke-dasharray', '2,2'))
+        .call(g => g.selectAll('.tick text')
             .remove())
+
+    // 축의 맨 왼쪽에 "변동성" 텍스트 추가
+    svg.append('text')
+        .attr('class', 'scatterX1Text')
+        .attr('opacity', 0)
+        .attr('x', margin.left) // 왼쪽 여백에 위치
+        .attr('y', height / 2 + 40) // 축 바로 위에 위치
+        .attr('text-anchor', 'start') // 텍스트 시작점 기준 정렬
+        .attr('fill', 'gray')
+        .text('적극투자')
+
+    // 축의 맨 오른쪽에 "안정성" 텍스트 추가
+    svg.append('text')
+        .attr('class', 'scatterX2Text')  
+        .attr('opacity', 0)    
+        .attr('x', width - margin.right + 190) // 오른쪽 여백에 위치
+        .attr('y', height / 2 + 40) // 축 바로 위에 위치
+        .attr('text-anchor', 'end') // 텍스트 끝점 기준 정렬
+        .attr('fill', 'gray')
+        .text('안정추구')
     
+
     svg.append('g')
         .call(scatteryAxis)
         .attr('class', 'scatter-y')
         .attr('opacity', 0)
-        .attr('transform', `translate(${margin.left - 20 + width}, 0)`)
+        .attr('transform', `translate(${(width / 1.5)+30}, 0)`)
         .call(g => g.select('.domain')
+            .attr('stroke', 'gray')
+            .attr('stroke-dasharray', '4,4'))
+        .call(g => g.selectAll('.tick line')
+            .attr('stroke', 'gray')
+            .attr('stroke-dasharray', '2,2'))
+        .call(g => g.selectAll('.tick text')
             .remove())
-        .call(g => g.selectAll('.tick line'))
-            .attr('stroke-opacity', 0.2)
-            .attr('stroke-dasharray', 2.5)
+        // .call(g => g.selectAll('.tick line'))
+        //     .attr('stroke-opacity', 0.2)
+        //     .attr('stroke-dasharray', 2.5)
 
     // Axes for Histogram 
 
@@ -331,6 +387,47 @@ function drawInitial(){
         .attr('transform', 'translate(0, 700)')
         .attr('opacity', 0)
         .call(histxAxis)
+
+    // y축의 맨 위에 "장기성" 텍스트 추가
+    svg.append('text')
+        .attr('class', 'scatterY1Text')
+        .attr('opacity', 0)
+        .attr('x', (width / 2) + 125) // 가로 중앙에 위치
+        .attr('y', margin.top + 10) // 위쪽 여백에 위치
+        .attr('text-anchor', 'middle') // 텍스트 중앙 정렬
+        .attr('fill', 'gray')
+        .text('장기성');
+
+    // y축의 맨 아래에 "단기성" 텍스트 추가
+    svg.append('text')
+        .attr('class', 'scatterY2Text')
+        .attr('opacity', 0)
+        .attr('x', (width / 2)+ 125) // 가로 중앙에 위치
+        .attr('y', height - margin.bottom + 90) // 아래쪽 여백에 위치
+        .attr('text-anchor', 'middle') // 텍스트 중앙 정렬
+        .attr('fill', 'gray')
+        .text('단기성');
+
+
+    svg.append('text')
+        .attr('class', 'bubbleX1Text')
+        .attr('opacity', 0)
+        .attr('x', margin.left) // 왼쪽 여백에 위치
+        .attr('y', height / 2 + 40) // 축 바로 위에 위치
+        .attr('text-anchor', 'start') // 텍스트 시작점 기준 정렬
+        .attr('fill', 'gray')
+        .text('단기성')
+
+
+    svg.append('text')
+        .attr('class', 'bubbleX2Text')  
+        .attr('opacity', 0)    
+        .attr('x', width - margin.right + 190) // 오른쪽 여백에 위치
+        .attr('y', height / 2 + 40) // 축 바로 위에 위치
+        .attr('text-anchor', 'end') // 텍스트 끝점 기준 정렬
+        .attr('fill', 'gray')
+        .text('장기성')
+
 }
 
 //Cleaning Function
@@ -340,8 +437,16 @@ function clean(chartType){
     let svg = d3.select('#vis').select('svg')
     if (chartType !== "isScatter") {
         svg.select('.scatter-x').transition().attr('opacity', 0)
+        svg.select('.scatterX1Text').transition().attr('opacity', 0)
+        svg.select('.scatterX2Text').transition().attr('opacity', 0)
+        
         svg.select('.scatter-y').transition().attr('opacity', 0)
-        svg.select('.best-fit').transition().duration(200).attr('opacity', 0)
+        svg.select('.scatterY1Text').transition().attr('opacity', 0)
+        svg.select('.scatterY2Text').transition().attr('opacity', 0)
+
+        svg.select('.bubbleX1Text').transition().attr('opacity', 0)
+        svg.select('.bubbleX2Text').transition().attr('opacity', 0)
+        
     }
     if (chartType !== "isMultiples"){
         svg.selectAll('.lab-text').transition().attr('opacity', 0)
@@ -387,10 +492,10 @@ function draw1(){
         .attr('cx', (d, i) => salaryXScale(d.Median)+5)
         .attr('cy', (d, i) => i * 5.2 + 30)
 
-    svg.selectAll('.small-text').transition()
-        .attr('opacity', 1)
-        .attr('x', margin.left)
-        .attr('y', (d, i) => i * 5.2 + 30)
+    // svg.selectAll('.small-text').transition()
+    //     .attr('opacity', 1)
+    //     .attr('x', margin.left)
+    //     .attr('y', (d, i) => i * 5.2 + 30)
 }
 
 
@@ -404,14 +509,20 @@ function draw2(){
 
     svg.selectAll('circle')
         .transition().duration(300).delay((d, i) => i * 5)
+
+        // .attr('r', d => assetSizeScale(d.asset_size)*1.2)
         .attr('r', d => salarySizeScale(d.Median) * 1.2)
         .attr('fill', d => categoryColorScale(d.Category))
+
 
     simulation  
         .force('charge', d3.forceManyBody().strength([2]))
         .force('forceX', d3.forceX(d => categoriesXY[d.Category][0] + 200))
         .force('forceY', d3.forceY(d => categoriesXY[d.Category][1] - 50))
-        .force('collide', d3.forceCollide(d => salarySizeScale(d.Median) + 4))
+        
+        .force('collide', d3.forceCollide(d => salarySizeScale(d.Median) * 1.2 ))
+        // .force('collide', d3.forceCollide(d => assetSizeScale(d.asset_size))*1.2 + 4)
+
         .alphaDecay([0.02])
 
     //Reheat simulation and restart
@@ -426,7 +537,11 @@ function draw3(){
     
     svg.selectAll('circle')
         .transition().duration(400).delay((d, i) => i * 5)
-        .attr('r', d => salarySizeScale(d.Median) * 1.2)
+
+        // .attr('r', d => salarySizeScale(d.Median) * 1.6)
+        .attr('r', d => assetSizeScale(d.asset_size) * 1.6)
+        
+        
         .attr('fill', d => categoryColorScale(d.Category))
 
     svg.selectAll('.cat-rect').transition().duration(300).delay((d, i) => i * 30)
@@ -434,7 +549,7 @@ function draw3(){
         .attr('x', d => categoriesXY[d][0] + 120)
         
     svg.selectAll('.lab-text').transition().duration(300).delay((d, i) => i * 30)
-        .text(d => `총 지출금액: ₩${d3.format(",.2r")(categoriesXY[d][2])}`)
+        .text(d => d)
         .attr('x', d => categoriesXY[d][0] + 200)   
         .attr('y', d => categoriesXY[d][1] + 50)
         .attr('opacity', 1)
@@ -442,18 +557,20 @@ function draw3(){
     svg.selectAll('.lab-text')
         .on('mouseover', function(d, i){
             d3.select(this)
-                .text(d)
+            .text(d => `총 자산: ₩${d3.format(",.2r")(categoriesXY[d][2])}`)
         })
         .on('mouseout', function(d, i){
             d3.select(this)
-                .text(d => `총 지출금액: ₩${d3.format(",.2r")(categoriesXY[d][2])}`)
+            .text(d)
         })
 
     simulation  
         .force('charge', d3.forceManyBody().strength([2]))
         .force('forceX', d3.forceX(d => categoriesXY[d.Category][0] + 200))
         .force('forceY', d3.forceY(d => categoriesXY[d.Category][1] - 50))
-        .force('collide', d3.forceCollide(d => salarySizeScale(d.Median) + 4))
+        // .force('collide', d3.forceCollide(d => salarySizeScale(d.Median) * 1.6 + 4))
+        // .force('collide', d3.forceCollide(d => salarySizeScale(d.Median) + 4))
+        .force('collide', d3.forceCollide(d => assetSizeScale(d.asset_size) * 1.6 + 4))
         .alpha(0.7).alphaDecay(0.02).restart()
 
 }
@@ -506,51 +623,159 @@ function colorByGender(d, i){
         return 'grey'
     }
 }
-
+// step1
 function draw6(){
     simulation.stop()
     
     let svg = d3.select("#vis").select("svg")
     clean('isScatter')
-
     svg.selectAll('.scatter-x').transition().attr('opacity', 0.7).selectAll('.domain').attr('opacity', 1)
+    svg.selectAll('.scatterX1Text').transition().attr('opacity', 0.7).selectAll('.domain').attr('opacity', 1)
+    svg.selectAll('.scatterX2Text').transition().attr('opacity', 0.7).selectAll('.domain').attr('opacity', 1)
+    
     svg.selectAll('.scatter-y').transition().attr('opacity', 0.7).selectAll('.domain').attr('opacity', 1)
+    svg.selectAll('.scatterY1Text').transition().attr('opacity', 0.7).selectAll('.domain').attr('opacity', 1)
+    svg.selectAll('.scatterY2Text').transition().attr('opacity', 0.7).selectAll('.domain').attr('opacity', 1)
+    
+    // svg.selectAll('circle')
+    //     .transition().duration(800).ease(d3.easeBack)
+    //     .attr('cx', d => shareWomenXScale(d.ShareWomen))
+    //     .attr('cy', d => salaryYScale(d.Median))
+    //     .attr('r', salarySizeScale(d.Median) * 1.6)
 
     svg.selectAll('circle')
-        .transition().duration(800).ease(d3.easeBack)
-        .attr('cx', d => shareWomenXScale(d.ShareWomen))
-        .attr('cy', d => salaryYScale(d.Median))
+    .transition()
+    .duration(600).delay((d, i) => i * 2).ease(d3.easeBack)
+    .attr('cx', d => x1Scale(d.x1))
+    .attr('cy', d => x2Scale(d.x2))
+    .attr('r', d => assetSizeScale2(d.asset_size_part2))
+    .attr('fill', d => categoryColorScale(d.Category))
     
-    svg.selectAll('circle').transition(1600)
-        .attr('fill', colorByGender)
-        .attr('r', 10)
-
-    svg.select('.best-fit').transition().duration(300)
-        .attr('opacity', 0.5)
-   
+    simulation 
+        // .force('forceX', d3.forceX(d.x1))
+        // .force('forceY', d3.forceY(d.x2))
+        .force('collide', d3.forceCollide(d => assetSizeScale(d.asset_size) * 1.6 + 4))
+        .alpha(0.6).alphaDecay(0.05)
 }
 
+function draw6_1(){
+    simulation.stop()
+    
+    let svg = d3.select("#vis").select("svg")
+    clean('isScatter')
+    svg.selectAll('.scatter-x').transition().attr('opacity', 0.7).selectAll('.domain').attr('opacity', 1)
+    svg.selectAll('.scatterX1Text').transition().attr('opacity', 0.7).selectAll('.domain').attr('opacity', 1)
+    svg.selectAll('.scatterX2Text').transition().attr('opacity', 0.7).selectAll('.domain').attr('opacity', 1)
+    
+    svg.selectAll('.scatter-y').transition().attr('opacity', 0.7).selectAll('.domain').attr('opacity', 1)
+    svg.selectAll('.scatterY1Text').transition().attr('opacity', 0.7).selectAll('.domain').attr('opacity', 1)
+    svg.selectAll('.scatterY2Text').transition().attr('opacity', 0.7).selectAll('.domain').attr('opacity', 1)
+    
+    // svg.selectAll('circle')
+    //     .transition().duration(800).ease(d3.easeBack)
+    //     .attr('cx', d => shareWomenXScale(d.ShareWomen))
+    //     .attr('cy', d => salaryYScale(d.Median))
+    //     .attr('r', salarySizeScale(d.Median) * 1.6)
+
+    svg.selectAll('circle')
+    .transition()
+    .duration(600).delay((d, i) => i * 2).ease(d3.easeBack)
+    .attr('cx', d => x1Scale(d.x1))
+    .attr('cy', d => x2Scale(d.x2))
+    .attr('r', d => assetSizeScale2(d.asset_size_part2))
+    .attr('fill', colorByGender)
+    
+    simulation 
+        // .force('forceX', d3.forceX(d.x1))
+        // .force('forceY', d3.forceY(d.x2))
+        .force('collide', d3.forceCollide(d => assetSizeScale(d.asset_size) * 1.6 + 4))
+        .alpha(0.6).alphaDecay(0.05)
+}
+
+
+function draw6_2(){
+    simulation.stop()
+    
+    let svg = d3.select("#vis").select("svg")
+    clean('isScatter')
+    svg.selectAll('.scatter-x').transition().attr('opacity', 0.7).selectAll('.domain').attr('opacity', 1)
+    svg.selectAll('.scatterX1Text').transition().attr('opacity', 0.7).selectAll('.domain').attr('opacity', 1)
+    svg.selectAll('.scatterX2Text').transition().attr('opacity', 0.7).selectAll('.domain').attr('opacity', 1)
+    
+    svg.selectAll('.scatter-y').transition().attr('opacity', 0.7).selectAll('.domain').attr('opacity', 1)
+    svg.selectAll('.scatterY1Text').transition().attr('opacity', 0.7).selectAll('.domain').attr('opacity', 1)
+    svg.selectAll('.scatterY2Text').transition().attr('opacity', 0.7).selectAll('.domain').attr('opacity', 1)
+    
+    // svg.selectAll('circle')
+    //     .transition().duration(800).ease(d3.easeBack)
+    //     .attr('cx', d => shareWomenXScale(d.ShareWomen))
+    //     .attr('cy', d => salaryYScale(d.Median))
+    //     .attr('r', salarySizeScale(d.Median) * 1.6)
+
+    svg.selectAll('circle')
+    .transition()
+    .duration(600).delay((d, i) => i * 2).ease(d3.easeBack)
+    .attr('cx', d => x1Scale(d.x1))
+    .attr('cy', d => x2Scale(d.x2))
+    .attr('r', d => assetSizeScale2(d.asset_size_part2))
+    .attr('fill', colorByGender)
+    
+    simulation 
+        // .force('forceX', d3.forceX(d.x1))
+        // .force('forceY', d3.forceY(d.x2))
+        .force('collide', d3.forceCollide(d => assetSizeScale(d.asset_size) * 1.6 + 4))
+        .alpha(0.6).alphaDecay(0.05)
+}
+
+
+
+//하나은행 로고
 function draw7(){
     let svg = d3.select('#vis').select('svg')
 
     clean('isBubble')
 
     simulation
-        .force('forceX', d3.forceX(d => enrollmentScale(d.Total)))
+        .force('forceX', d3.forceX(d => enrollmentScale(d.x2)))
         .force('forceY', d3.forceY(500))
-        .force('collide', d3.forceCollide(d => enrollmentSizeScale(d.Total) + 2))
+        .force('collide', d3.forceCollide(d => enrollmentSizeScale(d.asset_size_part2) + 2))
         .alpha(0.8).alphaDecay(0.05).restart()
 
     svg.selectAll('circle')
         .transition().duration(300).delay((d, i) => i * 4)
-        .attr('r', d => enrollmentSizeScale(d.Total))
+        .attr('r', d => enrollmentSizeScale(d.asset_size_part2))
         .attr('fill', d => categoryColorScale(d.Category))
 
     //Show enrolment axis (remember to include domain)
     svg.select('.enrolment-axis').attr('opacity', 0.5).selectAll('.domain').attr('opacity', 1)
+    svg.selectAll('.bubbleX1Text').transition().attr('opacity', 0.7).selectAll('.domain').attr('opacity', 1)
+    svg.selectAll('.bubbleX2Text').transition().attr('opacity', 0.7).selectAll('.domain').attr('opacity', 1)
 
 }
 
+// function draw4(){
+//     let svg = d3.select('#vis').select('svg')
+
+//     clean('isHist')
+
+//     simulation.stop()
+
+//     svg.selectAll('circle')
+//         .transition().duration(600).delay((d, i) => i * 2).ease(d3.easeBack)
+//             .attr('r', 10) // 원 크기를 좀 더 작게 조정
+//             .attr('cx', d => histXScale(d.x2))
+//             .attr('cy', d => histYScale(d.HistCol))
+//             .attr('fill', d => categoryColorScale(d.Category))
+
+//     let xAxis = d3.axisBottom(histXScale)
+//     svg.append('g')
+//         .attr('class', 'hist-axis')
+//         .attr('transform', `translate(0, ${height + margin.top })`)
+//         .call(xAxis)
+
+//     svg.selectAll('.lab-text')
+//         .on('mouseout', )
+// }
 function draw4(){
     let svg = d3.select('#vis').select('svg')
 
@@ -592,19 +817,21 @@ function draw8(){
         
 }
 
+
+
 //Array of all the graph functions
 //Will be called from the scroller functionality
 
 let activationFunctions = [
-    draw1,
-    draw1,
-    draw2,
+    
+    draw8,
     draw3,
+    draw6,
+    draw6_1,
+    draw7,
     draw4,
     draw5, 
-    draw6, 
-    draw7,
-    draw8
+    draw7
 ]
 
 //All the scrolling function
@@ -624,7 +851,7 @@ scroll.on('active', function(index) {
         .classed('is-leaving', function(d, i) { return i === index - 1; })
         .classed('is-next', function(d, i) { return i === index + 1; });
 
-    // 기��의 활성화 함수 실행
+    // 기의 활성화 함수 실행
     activeIndex = index;
     let sign = (activeIndex - lastIndex) < 0 ? -1 : 1; 
     let scrolledSections = d3.range(lastIndex + sign, activeIndex + sign, sign);
