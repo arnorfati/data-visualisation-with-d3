@@ -7,8 +7,9 @@ const categories = ['주식', 'ISA','입출금','펀드', '대출',
     '예금', 'IRP','보험/방카',
      '적금','퇴직연금',
     '외환',
-    '청약']
-const colors = ['#ffcc00', '#ff6666', '#cc0066', '#0c7b93', '#f688bb', '#65587f', '#baf1a1', '#333333', '#75b79e',  '#66cccc', '#9de3d0', '#9399ff']//, '#0c7b93', '#eab0d9', '#baf1a1', '#9399ff'
+    '청약',
+    '기타']
+const colors = ['#ffcc00', '#ff6666', '#cc0066', '#0c7b93', '#f688bb', '#65587f', '#baf1a1', '#333333', '#75b79e',  '#66cccc', '#9de3d0', '#9399ff','LightGray']//, '#0c7b93', '#eab0d9', '#baf1a1', '#9399ff'
 const categoriesXY = {'주식':    [0, 500, 4040000, 86.1],
                         'ISA':  [0, 800, 1400000, 119.9],
                         '입출금': [0, 200, 700000, 106.4],
@@ -20,7 +21,8 @@ const categoriesXY = {'주식':    [0, 500, 4040000, 86.1],
                         '적금': [400, 200, 2178000, 115.2],
                         '퇴직연금': [600, 500, 1400000, 93.2],
                         '외환': [600, 800, 280000, 99.6],
-                        '청약': [600, 200, 1500000, 160.0]}
+                        '청약': [600, 200, 1500000, 160.0],
+                        '기타': [1000, 1000, 0, 0]}
 
 const margin = {left: 170, top: 50, bottom: 50, right: 20}
 const width = 1000 - margin.left - margin.right
@@ -32,6 +34,7 @@ const height = 950 - margin.top - margin.bottom
 
 d3.csv('data/recent-grads.csv', function(d){
     return {
+        index_num : d.index_num,
         Major: d.Major,
         Total: +d.Total,
         x1: +d.x1,
@@ -46,7 +49,12 @@ d3.csv('data/recent-grads.csv', function(d){
         Category: d.Major_category,
         ShareWomen: +d.ShareWomen, 
         HistCol: +d.Histogram_column,
-        Midpoint: +d.midpoint
+        Midpoint: +d.midpoint,
+        list_x : +d.list_x,
+        list_y : +d.list_y,
+        logo_color : d.logo_color,
+        color_hist : d.color_hist
+
     };
 }).then(data => {
     dataset = data
@@ -78,11 +86,17 @@ function createScales(){
     shareWomenXScale = d3.scaleLinear(d3.extent(dataset, d => d.ShareWomen), [margin.left, margin.left + width])
     enrollmentScale = d3.scaleLinear([0,1], [margin.left + 120, margin.left + width - 50])
     enrollmentSizeScale = d3.scaleLinear(d3.extent(dataset, d=> d.asset_size_part2), [10,60])
-    histXScale = d3.scaleLinear([0,1], 
-        [margin.left, margin.left + width - 50]) // 오른쪽 여백 추가
-    histYScale = d3.scaleLinear(
-        [0, d3.max(dataset, d => d.HistCol)], // 0부터 시작하도록 수정
-        [height + margin.top, margin.top]) // 위아래 여백 확보
+
+
+    histXScale = d3.scaleLinear([55, d3.max(dataset, d => d.Midpoint)], // 0부터 시작하도록 수정, 
+                                [margin.left, margin.left + width - 50]) // 오른쪽 여백 추가
+    histYScale = d3.scaleLinear([200, 6000], // 0부터 시작하도록 수정
+                                [height + margin.top, margin.top]) // 위아래 여백 확보
+    
+    listXScale = d3.scaleLinear([0,950], // 0부터 시작하도록 수정, 
+                                [margin.left, margin.left + width - 50]) // 오른쪽 여백 추가
+    listYScale = d3.scaleLinear([0, 1000], // 0부터 시작하도록 수정
+                                [height + margin.top, margin.top]) // 위아래 여백 확보                            
 }
 
 function createLegend(x, y){
@@ -236,7 +250,8 @@ function drawInitial(){
                 <br><strong>상품명:</strong> ${d.Major[0] + d.Major.slice(1,).toLowerCase()} 
                 <br> <strong>자산 금액:</strong> ₩${d3.format(",.2r")(d.asset_size)} 
                 <br> <strong>수익율:</strong> ${Math.round(d.ShareWomen*100)}%
-                <br> <strong>금융기관:</strong> ${d.fin_type}`
+                <br> <strong>금융기관:</strong> ${d.fin_type}
+                <br> <strong>인덱스:</strong> ${d.index_num}`
             )
                 
                 
@@ -308,7 +323,7 @@ function drawInitial(){
 
     // Best fit line for gender scatter plot
 
-    const bestFitLine = [{x: 0.4, y: 56093}, {x: 1.5, y: 455423}]
+    const bestFitLine = [{x: 0.4, y: 700}, {x: 1.2, y: 700}]
     const lineFunction = d3.line()
                             .x(d => shareWomenXScale(d.x))
                             .y(d => salaryYScale(d.y))
@@ -321,7 +336,7 @@ function drawInitial(){
             .attr('stroke', 'grey')
             .attr('stroke-dasharray', 6.2)
             .attr('opacity', 0)
-            .attr('stroke-width', 3)
+            .attr('stroke-width', 5)
 
     let scatterxAxis = d3.axisBottom(shareWomenXScale)
     let scatteryAxis = d3.axisLeft(salaryYScale)
@@ -331,6 +346,20 @@ function drawInitial(){
         .attr('class', 'scatter-x')
         .attr('opacity', 0)
         .attr('transform', `translate(0, ${(height / 2)+50})`)
+        .call(g => g.select('.domain')
+            .attr('stroke', 'gray')
+            .attr('stroke-dasharray', '4,4'))
+        .call(g => g.selectAll('.tick line')
+            .attr('stroke', 'gray')
+            .attr('stroke-dasharray', '2,2'))
+        .call(g => g.selectAll('.tick text')
+            .remove())
+
+    svg.append('g')
+        .call(scatterxAxis)
+        .attr('class', 'hist-x')
+        .attr('opacity', 0)
+        .attr('transform', `translate(0, ${(height / 2)+260})`)
         .call(g => g.select('.domain')
             .attr('stroke', 'gray')
             .attr('stroke-dasharray', '4,4'))
@@ -428,6 +457,17 @@ function drawInitial(){
         .attr('fill', 'gray')
         .text('장기성')
 
+    
+    svg.append('text')
+        .attr('class', 'histX1Text')
+        .attr('opacity', 0)
+        .attr('x', margin.left-80) // 왼쪽 여백에 위치
+        .attr('y', height / 2 + 260) // 축 바로 위에 위치
+        .attr('text-anchor', 'start') // 텍스트 시작점 기준 정렬
+        .attr('fill', 'gray')
+        .text('1500 만원')
+
+
 }
 
 //Cleaning Function
@@ -446,6 +486,9 @@ function clean(chartType){
 
         svg.select('.bubbleX1Text').transition().attr('opacity', 0)
         svg.select('.bubbleX2Text').transition().attr('opacity', 0)
+
+        svg.select('.hist-x').transition().attr('opacity', 0)
+        svg.select('.histX1Text').transition().attr('opacity', 0)
         
     }
     if (chartType !== "isMultiples"){
@@ -753,29 +796,7 @@ function draw7(){
 
 }
 
-// function draw4(){
-//     let svg = d3.select('#vis').select('svg')
-
-//     clean('isHist')
-
-//     simulation.stop()
-
-//     svg.selectAll('circle')
-//         .transition().duration(600).delay((d, i) => i * 2).ease(d3.easeBack)
-//             .attr('r', 10) // 원 크기를 좀 더 작게 조정
-//             .attr('cx', d => histXScale(d.x2))
-//             .attr('cy', d => histYScale(d.HistCol))
-//             .attr('fill', d => categoryColorScale(d.Category))
-
-//     let xAxis = d3.axisBottom(histXScale)
-//     svg.append('g')
-//         .attr('class', 'hist-axis')
-//         .attr('transform', `translate(0, ${height + margin.top })`)
-//         .call(xAxis)
-
-//     svg.selectAll('.lab-text')
-//         .on('mouseout', )
-// }
+// 연금 개시 차트
 function draw4(){
     let svg = d3.select('#vis').select('svg')
 
@@ -785,10 +806,10 @@ function draw4(){
 
     svg.selectAll('circle')
         .transition().duration(600).delay((d, i) => i * 2).ease(d3.easeBack)
-            .attr('r', 5) // 원 크기를 좀 더 작게 조정
+            .attr('r', 8) // 원 크기를 좀 더 작게 조정
             .attr('cx', d => histXScale(d.Midpoint))
             .attr('cy', d => histYScale(d.HistCol))
-            .attr('fill', 'LightGray')
+            .attr('fill', d => d.color_hist)
 
     let xAxis = d3.axisBottom(histXScale)
     svg.append('g')
@@ -798,6 +819,9 @@ function draw4(){
 
     svg.selectAll('.lab-text')
         .on('mouseout', )
+
+    svg.selectAll('.histX1Text').transition().attr('opacity', 0.7).selectAll('.domain').attr('opacity', 1)
+    svg.selectAll('.hist-x').transition().attr('opacity', 0.7).selectAll('.domain').attr('opacity', 1)
 }
 
 function draw8(){
@@ -814,6 +838,31 @@ function draw8(){
         .force('forceY', d3.forceY(500))
         .force('collide', d3.forceCollide(d => salarySizeScale(d.Median) * 1.6 + 4))
         .alpha(0.6).alphaDecay(0.05).restart()
+}
+
+function draw9(){
+    simulation.stop()
+    
+    let svg = d3.select("#vis").select("svg")
+    clean('isScatter')
+    clean('none')
+
+    
+    svg.selectAll('circle')
+        .transition()
+        .duration(600).delay((d, i) => i * 2).ease(d3.easeBack)
+        .attr('cx', d => listXScale(d.list_x))
+        .attr('cy', d => listYScale(d.list_y))
+        .attr('r', 17)
+        .attr('fill', d => d.logo_color)
+
+
+
+    simulation 
+        // .force('forceX', d3.forceX(500))
+        // .force('forceY', d3.forceY(500))
+        // .force('collide', d3.forceCollide(13))
+        // .alpha(0.6).alphaDecay(0.05).restart()
         
 }
 
@@ -830,8 +879,7 @@ let activationFunctions = [
     draw6_1,
     draw7,
     draw4,
-    draw5, 
-    draw7
+    draw9
 ]
 
 //All the scrolling function
