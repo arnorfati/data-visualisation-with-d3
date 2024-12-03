@@ -10,19 +10,19 @@ const categories = ['주식', 'ISA','입출금','펀드', '대출',
     '청약',
     '기타']
 const colors = ['#ffcc00', '#ff6666', '#cc0066', '#0c7b93', '#f688bb', '#65587f', '#baf1a1', '#333333', '#75b79e',  '#66cccc', '#9de3d0', '#9399ff','LightGray']//, '#0c7b93', '#eab0d9', '#baf1a1', '#9399ff'
-const categoriesXY = {'주식':    [0, 500, 4040000, 86.1],
-                        'ISA':  [0, 800, 1400000, 119.9],
-                        '입출금': [0, 200, 700000, 106.4],
-                        '펀드':  [200, 500, 980000, 153.3],
-                        '대출':  [200, 800, 2010000, 105.2],
-                        '예금':  [200, 200, 400000, 102.5],
-                        'IRP':  [400, 500, 1680000, 123.3],
-                        '보험/방카': [400, 800, 280000, 79.5],
-                        '적금': [400, 200, 2178000, 115.2],
-                        '퇴직연금': [600, 500, 1400000, 93.2],
-                        '외환': [600, 800, 280000, 99.6],
-                        '청약': [600, 200, 1500000, 160.0],
-                        '기타': [1000, 1000, 0, 0]}
+const categoriesXY = {'주식':    [0, 500, '4900만원', 86.1],
+                        'ISA':  [0, 800, '8150만원', 119.9],
+                        '입출금': [0, 200, '889만원', 106.4],
+                        '펀드':  [200, 500, '1400만원', 153.3],
+                        '대출':  [200, 800, '3억 9000만원', 105.2],
+                        '예금':  [200, 200, '1억원', 102.5],
+                        'IRP':  [400, 500, '1억 600만원', 123.3],
+                        '보험/방카': [400, 800, '2000만원', 79.5],
+                        '적금': [400, 200, '580만원', 115.2],
+                        '퇴직연금': [600, 500, '3억원', 93.2],
+                        '외환': [600, 800, '150만원', 99.6],
+                        '청약': [600, 200, '1200만원', 160.0],
+                        '기타': [1000, '0', 0, 0]}
 
 const margin = {left: 170, top: 50, bottom: 50, right: 20}
 const width = 1000 - margin.left - margin.right
@@ -250,8 +250,8 @@ function drawInitial(){
                 <br><strong>상품명:</strong> ${d.Major[0] + d.Major.slice(1,).toLowerCase()} 
                 <br> <strong>자산 금액:</strong> ₩${d3.format(",.2r")(d.asset_size)} 
                 <br> <strong>수익율:</strong> ${Math.round(d.ShareWomen*100)}%
-                <br> <strong>금융기관:</strong> ${d.fin_type}
-                <br> <strong>인덱스:</strong> ${d.index_num}`
+                <br> <strong>금융기관:</strong> ${d.fin_type}`
+                // <br> <strong>인덱스:</strong> ${d.index_num}`
             )
                 
                 
@@ -312,8 +312,8 @@ function drawInitial(){
     svg.selectAll('.lab-text')
             .on('mouseover', function(d, i){
                 d3.select(this)
-                    .text(d => `${d}: 총 자산: ₩${d3.format(",.2r")(categoriesXY[d][2])}`)
-                    
+                    .text(d => ` 총 자산: ${categoriesXY[d][2]}`)
+                    // ${d.Category}
             })
             .on('mouseout', function(d, i){
                 d3.select(this)
@@ -507,6 +507,8 @@ function clean(chartType){
     }
     if (chartType !== "isBubble"){
         svg.select('.enrolment-axis').transition().attr('opacity', 0)
+        svg.select('.bubbleX1Text').transition().attr('opacity', 0)
+        svg.select('.bubbleX2Text').transition().attr('opacity', 0)
     }
 }
 
@@ -571,7 +573,7 @@ function draw2(){
     //Reheat simulation and restart
     simulation.alpha(0.9).restart()
     
-    createLegend(20, 50)
+    
 }
 
 function draw3(){
@@ -600,7 +602,7 @@ function draw3(){
     svg.selectAll('.lab-text')
         .on('mouseover', function(d, i){
             d3.select(this)
-            .text(d => `총 자산: ₩${d3.format(",.2r")(categoriesXY[d][2])}`)
+            .text(d => ` 총 자산: ${categoriesXY[d][2]}`)
         })
         .on('mouseout', function(d, i){
             d3.select(this)
@@ -615,6 +617,8 @@ function draw3(){
         // .force('collide', d3.forceCollide(d => salarySizeScale(d.Median) + 4))
         .force('collide', d3.forceCollide(d => assetSizeScale(d.asset_size) * 1.6 + 4))
         .alpha(0.7).alphaDecay(0.02).restart()
+
+
 
 }
 
@@ -658,14 +662,19 @@ function draw5(){
 }
 
 function colorByGender(d, i){
-    if (d.ShareWomen < 0.85){
-        return '#03A696'
-    } else if (d.ShareWomen > 1.15) {
-        return '#F24171'
+    if (d.ShareWomen > 0.15) {
+        return '#03A696';
+    } else if (d.ShareWomen > 0.03) {
+        return '#81d2ca';
+    } else if (d.ShareWomen > -0.03) {
+        return 'grey';
+    } else if (d.ShareWomen > -0.15) {
+        return '#f8a0b7';
     } else {
-        return 'grey'
+        return '#F24171';
     }
 }
+
 // step1
 function draw6(){
     simulation.stop()
@@ -699,6 +708,7 @@ function draw6(){
         // .force('forceY', d3.forceY(d.x2))
         .force('collide', d3.forceCollide(d => assetSizeScale(d.asset_size) * 1.6 + 4))
         .alpha(0.6).alphaDecay(0.05)
+    createLegend(20, 50)
 }
 
 function draw6_1(){
