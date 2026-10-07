@@ -60,7 +60,9 @@ d3.csv('data/recent-grads.csv', function(d){
     dataset = data
     console.log(dataset)
     createScales()
-    setTimeout(drawInitial(), 100)
+    drawInitial()
+    // 데이터와 simulation이 준비된 뒤에 스크롤 이벤트를 연결
+    setupScroller()
 })
 
 
@@ -247,7 +249,7 @@ function drawInitial(){
             .style('top', (d3.event.pageY - 25) + 'px')
             .style('display', 'inline-block')
             .html(`<strong>자산 유형:</strong> ${d.Category}
-                <br><strong>상품명:</strong> ${d.Major[0] + d.Major.slice(1,).toLowerCase()} 
+                <br><strong>상품명:</strong> ${d.Major}
                 <br> <strong>자산 금액:</strong> ₩${d3.format(",.2r")(d.asset_size)} 
                 <br> <strong>수익율:</strong> ${Math.round(d.ShareWomen*100)}%
                 <br> <strong>금융기관:</strong> ${d.fin_type}`
@@ -417,6 +419,13 @@ function drawInitial(){
         .attr('opacity', 0)
         .call(histxAxis)
 
+    // 연금 개시 차트(draw4)의 x축: 한 번만 만들고 draw4에서 보이게 한다
+    svg.append('g')
+        .attr('class', 'hist-axis')
+        .attr('transform', `translate(0, ${height + margin.top })`)
+        .attr('opacity', 0)
+        .call(d3.axisBottom(histXScale))
+
     // y축의 맨 위에 "장기성" 텍스트 추가
     svg.append('text')
         .attr('class', 'scatterY1Text')
@@ -512,6 +521,19 @@ function clean(chartType){
     }
 }
 
+// simulation을 다시 시작하기 전에, attr 전환으로 옮겨진 원의 현재 화면 위치를 노드 좌표에 반영한다.
+// 그렇지 않으면 첫 tick에서 원이 마지막 simulation 위치로 순간 이동한다.
+function syncNodePositions(){
+    nodes.interrupt()
+        .each(function(d){
+            if (this.getAttribute('cx') === null) return
+            d.x = +this.getAttribute('cx')
+            d.y = +this.getAttribute('cy')
+            d.vx = 0
+            d.vy = 0
+        })
+}
+
 //First draw function
 
 function draw1(){
@@ -577,6 +599,7 @@ function draw2(){
 }
 
 function draw3(){
+    syncNodePositions()
     let svg = d3.select("#vis").select('svg')
     clean('isMultiples')
     
@@ -784,6 +807,7 @@ function draw6_2(){
 
 //하나은행 로고
 function draw7(){
+    syncNodePositions()
     let svg = d3.select('#vis').select('svg')
 
     clean('isBubble')
@@ -800,7 +824,7 @@ function draw7(){
         .attr('fill', d => categoryColorScale(d.Category))
 
     //Show enrolment axis (remember to include domain)
-    svg.select('.enrolment-axis').attr('opacity', 0.5).selectAll('.domain').attr('opacity', 1)
+    svg.select('.enrolment-axis').transition().attr('opacity', 0.5).selectAll('.domain').attr('opacity', 1)
     svg.selectAll('.bubbleX1Text').transition().attr('opacity', 0.7).selectAll('.domain').attr('opacity', 1)
     svg.selectAll('.bubbleX2Text').transition().attr('opacity', 0.7).selectAll('.domain').attr('opacity', 1)
 
@@ -821,11 +845,7 @@ function draw4(){
             .attr('cy', d => histYScale(d.HistCol))
             .attr('fill', d => d.color_hist)
 
-    let xAxis = d3.axisBottom(histXScale)
-    svg.append('g')
-        .attr('class', 'hist-axis')
-        .attr('transform', `translate(0, ${height + margin.top })`)
-        .call(xAxis)
+    svg.select('.hist-axis').transition().attr('opacity', 1)
 
     svg.selectAll('.lab-text')
         .on('mouseout', )
@@ -835,6 +855,7 @@ function draw4(){
 }
 
 function draw8(){
+    syncNodePositions()
     clean('none')
 
     let svg = d3.select('#vis').select('svg')
@@ -896,33 +917,37 @@ let activationFunctions = [
 //Will draw a new graph based on the index provided by the scroll
 
 
-let scroll = scroller()
-    .container(d3.select('#graphic'))
-scroll()
+// 첫 화면(drawInitial)은 draw8과 같은 상태이므로 lastIndex를 0에서 시작한다.
+// 페이지가 중간에서 로드되면 1번부터 현재 섹션까지 순서대로 실행된다.
+let lastIndex = 0, activeIndex = 0
 
-let lastIndex, activeIndex = 0
+function setupScroller(){
+    let scroll = scroller()
+        .container(d3.select('#graphic'))
+    scroll()
 
-scroll.on('active', function(index) {
-    // 모든 step에 대해 상태 업데이트
-    d3.selectAll('.step')
-        .classed('is-active', function(d, i) { return i === index; })
-        .classed('is-leaving', function(d, i) { return i === index - 1; })
-        .classed('is-next', function(d, i) { return i === index + 1; });
+    scroll.on('active', function(index) {
+        // 모든 step에 대해 상태 업데이트
+        d3.selectAll('.step')
+            .classed('is-active', function(d, i) { return i === index; })
+            .classed('is-leaving', function(d, i) { return i === index - 1; })
+            .classed('is-next', function(d, i) { return i === index + 1; });
 
-    // 기의 활성화 함수 실행
-    activeIndex = index;
-    let sign = (activeIndex - lastIndex) < 0 ? -1 : 1; 
-    let scrolledSections = d3.range(lastIndex + sign, activeIndex + sign, sign);
-    scrolledSections.forEach(i => {
-        activationFunctions[i]();
+        // 기의 활성화 함수 실행
+        activeIndex = index;
+        let sign = (activeIndex - lastIndex) < 0 ? -1 : 1; 
+        let scrolledSections = d3.range(lastIndex + sign, activeIndex + sign, sign);
+        scrolledSections.forEach(i => {
+            activationFunctions[i]();
+        })
+        lastIndex = activeIndex;
+    });
+
+    scroll.on('progress', function(index, progress){
+        if (index == 2 & progress > 0.7){
+
+        }
     })
-    lastIndex = activeIndex;
-});
-
-scroll.on('progress', function(index, progress){
-    if (index == 2 & progress > 0.7){
-
-    }
-})
+}
 
 
